@@ -1,1 +1,1 @@
-# grafo-trabalho-2.2
+# grafo-trabalho-2.1_coloracao
