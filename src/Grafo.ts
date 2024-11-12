@@ -341,242 +341,256 @@ export abstract class Grafo {
   }
 
   prim(): void {
-    const solucaoArestas: { origem: number; destino: number; peso: number }[] =
-      [];
-    const verticesNaoVisitados = new Set<number>();
-    for (let indice = 0; indice < this.vertices.length; indice++) {
-      verticesNaoVisitados.add(indice);
-    }
-    const verticeInicial = 0;
-    verticesNaoVisitados.delete(verticeInicial);
-    const verticesIncluidos = new Set<number>();
-    verticesIncluidos.add(verticeInicial);
-
-    while (verticesNaoVisitados.size > 0) {
-      let arestaMinima: {
+    return this.calcularTempoExecucao(() => {
+      const solucaoArestas: {
         origem: number;
         destino: number;
         peso: number;
-      } | null = null;
-      let pesoMinimo = Infinity;
+      }[] = [];
+      const verticesNaoVisitados = new Set<number>();
+      for (let indice = 0; indice < this.vertices.length; indice++) {
+        verticesNaoVisitados.add(indice);
+      }
+      const verticeInicial = 0;
+      verticesNaoVisitados.delete(verticeInicial);
+      const verticesIncluidos = new Set<number>();
+      verticesIncluidos.add(verticeInicial);
 
-      for (const verticeU of verticesIncluidos) {
+      while (verticesNaoVisitados.size > 0) {
+        let arestaMinima: {
+          origem: number;
+          destino: number;
+          peso: number;
+        } | null = null;
+        let pesoMinimo = Infinity;
+
+        for (const verticeU of verticesIncluidos) {
+          const vizinhos = this.retornarVizinhos(verticeU);
+          for (const verticeV of vizinhos) {
+            if (verticesNaoVisitados.has(verticeV)) {
+              const pesoArestaUV = this.pesoAresta(verticeU, verticeV);
+              if (pesoArestaUV < pesoMinimo) {
+                pesoMinimo = pesoArestaUV;
+                arestaMinima = {
+                  origem: verticeU,
+                  destino: verticeV,
+                  peso: pesoArestaUV,
+                };
+              }
+            }
+          }
+        }
+
+        if (arestaMinima) {
+          solucaoArestas.push(arestaMinima);
+          verticesNaoVisitados.delete(arestaMinima.destino);
+          verticesIncluidos.add(arestaMinima.destino);
+        } else {
+          break;
+        }
+      }
+
+      console.log("Arvore Geradora Minima (Prim):");
+      let pesoTotal = 0;
+      for (const aresta of solucaoArestas) {
+        console.log(
+          `Aresta (${this.rotuloVertice(aresta.origem)}, ${this.rotuloVertice(
+            aresta.destino
+          )}) - Peso: ${aresta.peso}`
+        );
+        pesoTotal += aresta.peso;
+      }
+      console.log(`Peso total da arvore: ${pesoTotal}`);
+    });
+  }
+
+  kruskal(): void {
+    return this.calcularTempoExecucao(() => {
+      const solucaoArestas: {
+        origem: number;
+        destino: number;
+        peso: number;
+      }[] = [];
+      const listaArestas: { origem: number; destino: number; peso: number }[] =
+        [];
+
+      for (let verticeU = 0; verticeU < this.vertices.length; verticeU++) {
         const vizinhos = this.retornarVizinhos(verticeU);
         for (const verticeV of vizinhos) {
-          if (verticesNaoVisitados.has(verticeV)) {
-            const pesoArestaUV = this.pesoAresta(verticeU, verticeV);
-            if (pesoArestaUV < pesoMinimo) {
-              pesoMinimo = pesoArestaUV;
-              arestaMinima = {
-                origem: verticeU,
-                destino: verticeV,
-                peso: pesoArestaUV,
-              };
-            }
+          if (verticeU < verticeV || this.direcionado) {
+            const pesoAresta = this.pesoAresta(verticeU, verticeV);
+            listaArestas.push({
+              origem: verticeU,
+              destino: verticeV,
+              peso: pesoAresta,
+            });
           }
         }
       }
 
-      if (arestaMinima) {
-        solucaoArestas.push(arestaMinima);
-        verticesNaoVisitados.delete(arestaMinima.destino);
-        verticesIncluidos.add(arestaMinima.destino);
-      } else {
-        break;
+      listaArestas.sort((a, b) => a.peso - b.peso);
+
+      const representante = new Array(this.vertices.length);
+      for (let indice = 0; indice < representante.length; indice++) {
+        representante[indice] = indice;
       }
-    }
 
-    console.log("Arvore Geradora Minima (Prim):");
-    let pesoTotal = 0;
-    for (const aresta of solucaoArestas) {
-      console.log(
-        `Aresta (${this.rotuloVertice(aresta.origem)}, ${this.rotuloVertice(
-          aresta.destino
-        )}) - Peso: ${aresta.peso}`
-      );
-      pesoTotal += aresta.peso;
-    }
-    console.log(`Peso total da arvore: ${pesoTotal}`);
-  }
+      const encontrar = (indice: number): number => {
+        if (representante[indice] !== indice) {
+          representante[indice] = encontrar(representante[indice]);
+        }
+        return representante[indice];
+      };
 
-  kruskal(): void {
-    const solucaoArestas: { origem: number; destino: number; peso: number }[] =
-      [];
-    const listaArestas: { origem: number; destino: number; peso: number }[] =
-      [];
+      const unir = (indice1: number, indice2: number): void => {
+        const representante1 = encontrar(indice1);
+        const representante2 = encontrar(indice2);
+        if (representante1 !== representante2) {
+          representante[representante2] = representante1;
+        }
+      };
 
-    for (let verticeU = 0; verticeU < this.vertices.length; verticeU++) {
-      const vizinhos = this.retornarVizinhos(verticeU);
-      for (const verticeV of vizinhos) {
-        if (verticeU < verticeV || this.direcionado) {
-          const pesoAresta = this.pesoAresta(verticeU, verticeV);
-          listaArestas.push({
-            origem: verticeU,
-            destino: verticeV,
-            peso: pesoAresta,
-          });
+      for (const aresta of listaArestas) {
+        const verticeU = aresta.origem;
+        const verticeV = aresta.destino;
+        if (encontrar(verticeU) !== encontrar(verticeV)) {
+          solucaoArestas.push(aresta);
+          unir(verticeU, verticeV);
         }
       }
-    }
 
-    listaArestas.sort((a, b) => a.peso - b.peso);
-
-    const representante = new Array(this.vertices.length);
-    for (let indice = 0; indice < representante.length; indice++) {
-      representante[indice] = indice;
-    }
-
-    const encontrar = (indice: number): number => {
-      if (representante[indice] !== indice) {
-        representante[indice] = encontrar(representante[indice]);
+      console.log("Arvore Geradora Minima (Kruskal):");
+      let pesoTotal = 0;
+      for (const aresta of solucaoArestas) {
+        console.log(
+          `Aresta (${this.rotuloVertice(aresta.origem)}, ${this.rotuloVertice(
+            aresta.destino
+          )}) - Peso: ${aresta.peso}`
+        );
+        pesoTotal += aresta.peso;
       }
-      return representante[indice];
-    };
-
-    const unir = (indice1: number, indice2: number): void => {
-      const representante1 = encontrar(indice1);
-      const representante2 = encontrar(indice2);
-      if (representante1 !== representante2) {
-        representante[representante2] = representante1;
-      }
-    };
-
-    for (const aresta of listaArestas) {
-      const verticeU = aresta.origem;
-      const verticeV = aresta.destino;
-      if (encontrar(verticeU) !== encontrar(verticeV)) {
-        solucaoArestas.push(aresta);
-        unir(verticeU, verticeV);
-      }
-    }
-
-    console.log("Arvore Geradora Minima (Kruskal):");
-    let pesoTotal = 0;
-    for (const aresta of solucaoArestas) {
-      console.log(
-        `Aresta (${this.rotuloVertice(aresta.origem)}, ${this.rotuloVertice(
-          aresta.destino
-        )}) - Peso: ${aresta.peso}`
-      );
-      pesoTotal += aresta.peso;
-    }
-    console.log(`Peso total da arvore: ${pesoTotal}`);
+      console.log(`Peso total da arvore: ${pesoTotal}`);
+    });
   }
 
   caixeiroExaustivo(verticeInicial: number): void {
-    const numeroVertices = this.vertices.length;
-    const verticesRestantes = [];
-    for (let indice = 0; indice < numeroVertices; indice++) {
-      if (indice !== verticeInicial) {
-        verticesRestantes.push(indice);
-      }
-    }
-
-    const gerarPermutacoes = (arranjo: number[]): number[][] => {
-      if (arranjo.length === 1) return [arranjo];
-      const permutacoes: number[][] = [];
-      for (let indice = 0; indice < arranjo.length; indice++) {
-        const atual = arranjo[indice];
-        const restante = arranjo
-          .slice(0, indice)
-          .concat(arranjo.slice(indice + 1));
-        const permutacoesRestantes = gerarPermutacoes(restante);
-        for (const permutacao of permutacoesRestantes) {
-          permutacoes.push([atual].concat(permutacao));
+    return this.calcularTempoExecucao(() => {
+      const numeroVertices = this.vertices.length;
+      const verticesRestantes = [];
+      for (let indice = 0; indice < numeroVertices; indice++) {
+        if (indice !== verticeInicial) {
+          verticesRestantes.push(indice);
         }
       }
-      return permutacoes;
-    };
 
-    const todasPermutacoes = gerarPermutacoes(verticesRestantes);
-    let menorCusto = Infinity;
-    let melhorCaminho: number[] = [];
+      const gerarPermutacoes = (arranjo: number[]): number[][] => {
+        if (arranjo.length === 1) return [arranjo];
+        const permutacoes: number[][] = [];
+        for (let indice = 0; indice < arranjo.length; indice++) {
+          const atual = arranjo[indice];
+          const restante = arranjo
+            .slice(0, indice)
+            .concat(arranjo.slice(indice + 1));
+          const permutacoesRestantes = gerarPermutacoes(restante);
+          for (const permutacao of permutacoesRestantes) {
+            permutacoes.push([atual].concat(permutacao));
+          }
+        }
+        return permutacoes;
+      };
 
-    for (const permutacao of todasPermutacoes) {
-      let custoAtual = 0;
-      let verticeAtual = verticeInicial;
-      let caminhoValido = true;
-      for (const proximoVertice of permutacao) {
-        if (this.existeAresta(verticeAtual, proximoVertice)) {
-          custoAtual += this.pesoAresta(verticeAtual, proximoVertice);
-          verticeAtual = proximoVertice;
-        } else {
-          caminhoValido = false;
-          break;
+      const todasPermutacoes = gerarPermutacoes(verticesRestantes);
+      let menorCusto = Infinity;
+      let melhorCaminho: number[] = [];
+
+      for (const permutacao of todasPermutacoes) {
+        let custoAtual = 0;
+        let verticeAtual = verticeInicial;
+        let caminhoValido = true;
+        for (const proximoVertice of permutacao) {
+          if (this.existeAresta(verticeAtual, proximoVertice)) {
+            custoAtual += this.pesoAresta(verticeAtual, proximoVertice);
+            verticeAtual = proximoVertice;
+          } else {
+            caminhoValido = false;
+            break;
+          }
+        }
+        if (caminhoValido && this.existeAresta(verticeAtual, verticeInicial)) {
+          custoAtual += this.pesoAresta(verticeAtual, verticeInicial);
+          if (custoAtual < menorCusto) {
+            menorCusto = custoAtual;
+            melhorCaminho = [verticeInicial].concat(permutacao, verticeInicial);
+          }
         }
       }
-      if (caminhoValido && this.existeAresta(verticeAtual, verticeInicial)) {
-        custoAtual += this.pesoAresta(verticeAtual, verticeInicial);
-        if (custoAtual < menorCusto) {
-          menorCusto = custoAtual;
-          melhorCaminho = [verticeInicial].concat(permutacao, verticeInicial);
-        }
-      }
-    }
 
-    if (menorCusto === Infinity) {
-      console.log(
-        "[caixeiroExaustivo] Nao existe ciclo Hamiltoniano no grafo."
-      );
-    } else {
-      console.log("Caixeiro Viajante (Busca Exaustiva):");
-      console.log(
-        `Menor custo: ${menorCusto}, Caminho: ${melhorCaminho
-          .map((v) => this.rotuloVertice(v))
-          .join(" -> ")}`
-      );
-    }
+      if (menorCusto === Infinity) {
+        console.log(
+          "[caixeiroExaustivo] Nao existe ciclo Hamiltoniano no grafo."
+        );
+      } else {
+        console.log("Caixeiro Viajante (Busca Exaustiva):");
+        console.log(
+          `Menor custo: ${menorCusto}, Caminho: ${melhorCaminho
+            .map((v) => this.rotuloVertice(v))
+            .join(" -> ")}`
+        );
+      }
+    });
   }
 
   caixeiroVizinhoMaisProximo(verticeInicial: number): void {
-    const numeroVertices = this.vertices.length;
-    const verticesVisitados = new Set<number>();
-    const caminhoPercorrido = [verticeInicial];
-    let verticeAtual = verticeInicial;
-    let custoTotal = 0;
-    verticesVisitados.add(verticeAtual);
+    return this.calcularTempoExecucao(() => {
+      const numeroVertices = this.vertices.length;
+      const verticesVisitados = new Set<number>();
+      const caminhoPercorrido = [verticeInicial];
+      let verticeAtual = verticeInicial;
+      let custoTotal = 0;
+      verticesVisitados.add(verticeAtual);
 
-    while (verticesVisitados.size < numeroVertices) {
-      const vizinhosNaoVisitados = this.retornarVizinhos(verticeAtual).filter(
-        (vertice) => !verticesVisitados.has(vertice)
-      );
-      if (vizinhosNaoVisitados.length === 0) {
+      while (verticesVisitados.size < numeroVertices) {
+        const vizinhosNaoVisitados = this.retornarVizinhos(verticeAtual).filter(
+          (vertice) => !verticesVisitados.has(vertice)
+        );
+        if (vizinhosNaoVisitados.length === 0) {
+          console.log(
+            "[caixeiroVizinhoMaisProximo] Nao e possivel visitar todos os vertices."
+          );
+          return;
+        }
+        let verticeMaisProximo = vizinhosNaoVisitados[0];
+        let menorPeso = this.pesoAresta(verticeAtual, verticeMaisProximo);
+        for (const verticeVizinho of vizinhosNaoVisitados) {
+          const pesoAresta = this.pesoAresta(verticeAtual, verticeVizinho);
+          if (pesoAresta < menorPeso) {
+            menorPeso = pesoAresta;
+            verticeMaisProximo = verticeVizinho;
+          }
+        }
+        caminhoPercorrido.push(verticeMaisProximo);
+        custoTotal += menorPeso;
+        verticesVisitados.add(verticeMaisProximo);
+        verticeAtual = verticeMaisProximo;
+      }
+
+      if (this.existeAresta(verticeAtual, verticeInicial)) {
+        custoTotal += this.pesoAresta(verticeAtual, verticeInicial);
+        caminhoPercorrido.push(verticeInicial);
+      } else {
         console.log(
           "[caixeiroVizinhoMaisProximo] Nao e possivel visitar todos os vertices."
         );
         return;
       }
-      let verticeMaisProximo = vizinhosNaoVisitados[0];
-      let menorPeso = this.pesoAresta(verticeAtual, verticeMaisProximo);
-      for (const verticeVizinho of vizinhosNaoVisitados) {
-        const pesoAresta = this.pesoAresta(verticeAtual, verticeVizinho);
-        if (pesoAresta < menorPeso) {
-          menorPeso = pesoAresta;
-          verticeMaisProximo = verticeVizinho;
-        }
-      }
-      caminhoPercorrido.push(verticeMaisProximo);
-      custoTotal += menorPeso;
-      verticesVisitados.add(verticeMaisProximo);
-      verticeAtual = verticeMaisProximo;
-    }
 
-    if (this.existeAresta(verticeAtual, verticeInicial)) {
-      custoTotal += this.pesoAresta(verticeAtual, verticeInicial);
-      caminhoPercorrido.push(verticeInicial);
-    } else {
+      console.log("Caixeiro Viajante (Vizinho Mais Proximo):");
       console.log(
-        "[caixeiroVizinhoMaisProximo] Nao e possivel retornar ao vertice inicial."
+        `Custo total: ${custoTotal}, Caminho: ${caminhoPercorrido
+          .map((v) => this.rotuloVertice(v))
+          .join(" -> ")}`
       );
-      return;
-    }
-
-    console.log("Caixeiro Viajante (Vizinho Mais Proximo):");
-    console.log(
-      `Custo total: ${custoTotal}, Caminho: ${caminhoPercorrido
-        .map((v) => this.rotuloVertice(v))
-        .join(" -> ")}`
-    );
+    });
   }
 }
 
